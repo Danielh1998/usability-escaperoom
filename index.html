@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Usability Escaperoom</title>
+  <style>
+    body {
+      background-color: yellow; /* Slechte kleurkeuze om op te lossen */
+      color: lightgray;
+      font-family: Comic Sans MS, cursive; /* Onprofessioneel, fun element */
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background-color: blue; /* Moeilijk leesbaar menubalk */
+      padding: 1rem;
+    }
+
+    h1 {
+      margin: 1rem 0;
+    }
+
+    nav {
+      background-color: blue;
+      padding: 1rem;
+    }
+
+    .menu {
+      display: flex;
+      justify-content: space-around;
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .menu li {
+      cursor: pointer;
+      color: darkblue;
+      font-weight: bold;
+    }
+
+    main {
+      padding: 2rem;
+    }
+
+    .button {
+      background-color: red;
+      color: red; /* Slecht contrast, onleesbaar */
+      padding: 1rem 2rem;
+      border: none;
+      cursor: pointer;
+      margin-bottom: 1rem;
+    }
+
+    .hidden-text {
+      color: yellow; /* Vrijwel onzichtbaar op gele achtergrond */
+    }
+
+    #puzzleInput {
+      display: none;
+      margin-top: 1rem;
+    }
+
+    #timer {
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin-top: 1rem;
+    }
+
+    .clue {
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px dashed red;
+      padding: 1rem;
+      margin: 1rem 0;
+      display: none;
+    }
+
+    #foundLetters {
+      margin-top: 1rem;
+      font-weight: bold;
+      color: black; /* Iets beter leesbaar dan lichtgray op geel */
+    }
+
+    /* Wanneer gebruiker "oplossingen" zou doorvoeren, zou het design verbeteren.
+       Hier blijft alles "fout" als thematisch element. */
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Escaperoom: Los de Usability-fouten op!</h1>
+  </header>
+
+  <nav>
+    <ul class="menu">
+      <li id="nav1">Pagina 1</li>
+      <li id="nav2">Pagina 2</li>
+      <li id="nav3">Pagina 3</li>
+    </ul>
+  </nav>
+
+  <main>
+    <p>
+      Welkom op deze website vol usability-fouten. Er zijn <strong>zes</strong> verborgen aanwijzingen te vinden.<br>
+      Maar dit keer is het wat lastiger: je hebt telkens een quizvraag én maximaal <strong>3</strong> pogingen per puzzel!<br>
+      Vind alle zes letters om de code te vormen en ontsnap binnen <strong>5</strong> minuten.
+    </p>
+
+    <!-- Slechte call-to-action button -->
+    <button class="button" id="badButton">Klik hier</button>
+
+    <!-- Verborgen tekst voor puzzel #1 -->
+    <p class="hidden-text" id="hiddenText">Hint: "U" (Maar je moet eerst de vraag goed beantwoorden...)</p>
+
+    <!-- Extra link met fout (Puzzel #6) -->
+    <p>Meer informatie? <a href="http://niet-bestaande-pagina.nl" id="brokenLink" target="_blank">Klik hier voor support</a></p>
+
+    <!-- Tekstvak om de code in te voeren -->
+    <input type="text" id="puzzleInput" placeholder="Voer hier de 6-letter code in..." />
+    <div id="timer"></div>
+
+    <div class="clue" id="clueMessage"></div>
+
+    <!-- Overzicht van gevonden letters -->
+    <div id="foundLetters">Nog geen letters gevonden.</div>
+  </main>
+
+  <script>
+    /* ========================================
+       Variabelen
+    ======================================== */
+    let cluesFound = 0; // Houdt bij hoeveel aanwijzingen zijn gevonden
+    let letters = [null, null, null, null, null, null]; // Zes letters om te verzamelen
+    let timerElement = document.getElementById('timer');
+    let totalTime = 300; // 5 minuten in seconden
+    let puzzleInput = document.getElementById('puzzleInput');
+    let clueMessage = document.getElementById('clueMessage');
+    let foundLettersDiv = document.getElementById('foundLetters');
+
+    // Pogingen per puzzel (max 3)
+    let puzzleAttempts = {
+      hiddenText: 3,
+      nav2: 3,
+      badButton: 3,
+      nav3: 3,
+      nav1: 3,
+      brokenLink: 3
+    };
+
+    /* ========================================
+       Start Timer
+    ======================================== */
+    let countdown = setInterval(() => {
+      if (totalTime <= 0) {
+        clearInterval(countdown);
+        timerElement.textContent = "Tijd is om! Je hebt niet op tijd ontsnapt...";
+        puzzleInput.disabled = true;
+      } else {
+        let minutes = Math.floor(totalTime / 60);
+        let seconds = totalTime % 60;
+        timerElement.textContent = `Tijd over: ${minutes}m ${seconds}s`;
+        totalTime--;
+      }
+    }, 1000);
+
+    /* ========================================
+       Functies
+    ======================================== */
+
+    // Toon een bericht (clue) enkele seconden
+    function showClue(message) {
+      clueMessage.textContent = message;
+      clueMessage.style.display = 'block';
+      setTimeout(() => {
+        clueMessage.style.display = 'none';
+      }, 6000); // 6 seconden
+    }
+
+    // Werk de lijst met gevonden letters bij, zodat de speler kan zien welke letters hij heeft.
+    function updateFoundLetters() {
+      let display = letters.map((val, i) => {
+        // i+1 = puzzelnummer, val = de letter of null.
+        if (val) {
+          return `${i+1}: ${val}`;
+        } else {
+          return `${i+1}: ?`;
+        }
+      }).join(" | ");
+
+      foundLettersDiv.textContent = "Gevonden letters: " + display;
+    }
+
+    // Controleer of alle letters gevonden zijn
+    function checkAllClues() {
+      updateFoundLetters();
+      if (cluesFound === 6) {
+        puzzleInput.style.display = 'block';
+      }
+    }
+
+    // Hulp-functie: stel prompt-vraag & check antwoord (true=goed, false=fout)
+    function askQuestion(question, correctAnswer) {
+      let userInput = prompt(question);
+      if (!userInput) return false; // Als gebruiker annuleert of niks invoert
+      return userInput.trim().toLowerCase() === correctAnswer.trim().toLowerCase();
+    }
+
+    // Hulp-functie: verwerk poging + check correctheid
+    function handlePuzzle(puzzleKey, question, correctAns, letter) {
+      // puzzleKey = referentie naar puzzleAttempts bijv. 'hiddenText'
+      // question = quizvraag (string)
+      // correctAns = correct antwoord (string, bv 'a')
+      // letter = te onthullen letter (bv 'U')
+
+      // Check of we nog pogingen hebben
+      if (puzzleAttempts[puzzleKey] <= 0) {
+        showClue("Je hebt geen pogingen meer voor deze puzzel.");
+        return;
+      }
+
+      let correct = askQuestion(question, correctAns);
+      if (correct) {
+        // Als antwoord goed is: geef letter (indien niet eerder gegeven)
+        if (!letters.includes(letter)) {
+          let index = Object.keys(puzzleAttempts).indexOf(puzzleKey);
+          letters[index] = letter;
+          cluesFound++;
+          showClue(`Goed antwoord! De letter is: ${letter}`);
+          checkAllClues();
+        } else {
+          showClue("Deze hint heb je al gevonden.");
+        }
+      } else {
+        // Verkeerd antwoord, poging -1
+        puzzleAttempts[puzzleKey]--;
+        if (puzzleAttempts[puzzleKey] > 0) {
+          showClue(`Fout antwoord! Je hebt nog ${puzzleAttempts[puzzleKey]} pogingen over.`);
+        } else {
+          showClue("Helaas, geen pogingen meer bij deze puzzel.");
+        }
+      }
+    }
+
+    /* ========================================
+       Puzzel #1: Hidden-text (Contrast)
+    ======================================== */
+    let hiddenText = document.getElementById('hiddenText');
+    hiddenText.addEventListener('click', function() {
+      handlePuzzle(
+        'hiddenText',
+        "Waarom is deze tekst zo moeilijk te lezen? A) Slecht contrast B) Te groot lettertype C) Perfect leesbaar",
+        "a",
+        "U" // de letter
+      );
+    });
+
+    /* ========================================
+       Puzzel #2: Navigatie (Pagina 2)
+    ======================================== */
+    let nav2 = document.getElementById('nav2');
+    nav2.addEventListener('click', function() {
+      handlePuzzle(
+        'nav2',
+        "Waarom is de navigatie onduidelijk? A) De namen van de pagina's zijn nietszeggend B) Het is perfect uitgelegd C) Alles is te obvious",
+        "a",
+        "X"
+      );
+    });
+
+    /* ========================================
+       Puzzel #3: Rode button (404 melding)
+    ======================================== */
+    let badButton = document.getElementById('badButton');
+    badButton.addEventListener('click', function() {
+      alert("404 Fout! Pagina niet gevonden, probeer opnieuw.");
+      handlePuzzle(
+        'badButton',
+        "Welke usability-fout zie je bij deze foutmelding? A) Geeft geen hulp of oplossing B) Geeft meteen de oplossing C) Het design is te modern",
+        "a",
+        "I"
+      );
+    });
+
+    /* ========================================
+       Puzzel #4: Pagina 3
+    ======================================== */
+    let nav3 = document.getElementById('nav3');
+    nav3.addEventListener('click', function() {
+      handlePuzzle(
+        'nav3',
+        "Wat moet een goede navigatie duidelijk maken? A) Dat je overal vastloopt B) Waar je bent en waar je naartoe kunt C) Het lettertype is klein",
+        "b",
+        "T"
+      );
+    });
+
+    /* ========================================
+       Puzzel #5: Pagina 1
+    ======================================== */
+    let nav1 = document.getElementById('nav1');
+    nav1.addEventListener('click', function() {
+      handlePuzzle(
+        'nav1',
+        "Wat is hier niet duidelijk? A) Alles is perfect B) Er zijn geen labels of omschrijvingen C) De kleur is uitmuntend",
+        "b",
+        "A"
+      );
+    });
+
+    /* ========================================
+       Puzzel #6: Gebroken link
+    ======================================== */
+    let brokenLink = document.getElementById('brokenLink');
+    brokenLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      handlePuzzle(
+        'brokenLink',
+        "Wat is het probleem met deze link? A) Niets, hij werkt perfect B) Hij leidt naar een onduidelijke pagina C) Hij leidt naar een niet-bestaande pagina zonder melding",
+        "c",
+        "B"
+      );
+    });
+
+    /* ========================================
+       Eindcode invoeren
+    ======================================== */
+    puzzleInput.addEventListener('keyup', function(e) {
+      if (e.key === 'Enter') {
+        let code = puzzleInput.value.trim().toUpperCase();
+        let correctCode = letters.join('').toUpperCase(); // bijv. "UXITAB"
+
+        if (code === correctCode) {
+          clearInterval(countdown);
+          timerElement.textContent = "Gefeliciteerd! Je hebt alle fouten gevonden en bent ontsnapt!";
+          puzzleInput.style.display = 'none';
+          // Toevoegen extra zinnetje
+          showClue(`Goed gedaan! De code was ${correctCode}. Jij hebt nu kennis gemaakt met usability, goed gedaan!`);
+        } else {
+          showClue('Dat is niet de juiste code. Probeer opnieuw.');
+        }
+      }
+    });
+
+    // We roepen deze één keer aan bij start, zodat er direct "6: ?" etc. staat.
+    updateFoundLetters();
+  </script>
+</body>
+</html>
