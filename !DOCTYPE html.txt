@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Usability Escaperoom</title>
+  <style>
+    body {
+      background-color: yellow; /* Slechte kleurkeuze om op te lossen */
+      color: lightgray;
+      font-family: Comic Sans MS, cursive; /* Onprofessioneel, fun element */
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background-color: blue; /* Moeilijk leesbaar menubalk */
+      padding: 1rem;
+    }
+
+    h1 {
+      margin: 1rem 0;
+    }
+
+    nav {
+      background-color: blue;
+      padding: 1rem;
+    }
+
+    .menu {
+      display: flex;
+      justify-content: space-around;
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .menu li {
+      cursor: pointer;
+      color: darkblue;
+      font-weight: bold;
+    }
+
+    main {
+      padding: 2rem;
+    }
+
+    .button {
+      background-color: red;
+      color: red; /* Slecht contrast, onleesbaar */
+      padding: 1rem 2rem;
+      border: none;
+      cursor: pointer;
+      margin-bottom: 1rem;
+    }
+
+    .hidden-text {
+      color: yellow; /* Vrijwel onzichtbaar op gele achtergrond */
+    }
+
+    #puzzleInput {
+      display: none;
+      margin-top: 1rem;
+    }
+
+    #timer {
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin-top: 1rem;
+    }
+
+    .clue {
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px dashed red;
+      padding: 1rem;
+      margin: 1rem 0;
+      display: none;
+    }
+
+    /* Wanneer gebruiker "oplossingen" zou doorvoeren, zou het design verbeteren.
+       Hier blijft alles "fout" als thematisch element. */
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Escaperoom: Los de Usability-fouten op!</h1>
+  </header>
+
+  <nav>
+    <ul class="menu">
+      <li id="nav1">Pagina 1</li>
+      <li id="nav2">Pagina 2</li>
+      <li id="nav3">Pagina 3</li>
+    </ul>
+  </nav>
+
+  <main>
+    <p>
+      Welkom op deze website vol usability-fouten. Er zijn <strong>vijf</strong> verborgen aanwijzingen te vinden.
+      Vind ze allemaal om de geheime code te vormen en te ontsnappen!
+    </p>
+
+    <!-- Slechte call-to-action button -->
+    <button class="button" id="badButton">Klik hier</button>
+
+    <!-- Verborgen tekst voor puzzel #1 -->
+    <p class="hidden-text" id="hiddenText">Hint: "U"</p>
+
+    <!-- Tekstvak om de code in te voeren -->
+    <input type="text" id="puzzleInput" placeholder="Voer hier de 5-letter code in..." />
+    <div id="timer"></div>
+
+    <div class="clue" id="clueMessage"></div>
+  </main>
+
+  <script>
+    /* ========================================
+       Variabelen
+    ======================================== */
+    let cluesFound = 0; // Houdt bij hoeveel aanwijzingen zijn gevonden
+    let letters = [null, null, null, null, null]; // Vijf letters om te verzamelen
+    let timerElement = document.getElementById('timer');
+    let totalTime = 360; // 6 minuten in seconden
+    let puzzleInput = document.getElementById('puzzleInput');
+    let clueMessage = document.getElementById('clueMessage');
+
+    /* ========================================
+       Start Timer
+    ======================================== */
+    let countdown = setInterval(() => {
+      if (totalTime <= 0) {
+        clearInterval(countdown);
+        timerElement.textContent = "Tijd is om! Je hebt niet op tijd ontsnapt...";
+        puzzleInput.disabled = true;
+      } else {
+        let minutes = Math.floor(totalTime / 60);
+        let seconds = totalTime % 60;
+        timerElement.textContent = `Tijd over: ${minutes}m ${seconds}s`;
+        totalTime--;
+      }
+    }, 1000);
+
+    /* ========================================
+       Functies om clues te tonen
+    ======================================== */
+    function showClue(message) {
+      clueMessage.textContent = message;
+      clueMessage.style.display = 'block';
+      setTimeout(() => {
+        clueMessage.style.display = 'none';
+      }, 3000);
+    }
+
+    function checkAllClues() {
+      // Als alle 5 letters gevuld zijn, tonen we het inputveld
+      if (cluesFound === 5) {
+        puzzleInput.style.display = 'block';
+      }
+    }
+
+    /* ========================================
+       Event Listeners voor puzzels
+    ======================================== */
+
+    // Puzzel #1: De "hidden-text" herkennen
+    // Als men klikt op de "hidden-text", ontvangen ze letter #1
+    let hiddenText = document.getElementById('hiddenText');
+    hiddenText.addEventListener('click', function() {
+      if (!letters[0]) {
+        letters[0] = 'U';
+        cluesFound++;
+        showClue('Je hebt de eerste letter gevonden: U');
+        checkAllClues();
+      } else {
+        showClue('Deze hint heb je al gevonden.');
+      }
+    });
+
+    // Puzzel #2: Navigatie probleem
+    // Enkel "Pagina 2" geeft je een clue als je erop klikt
+    let nav2 = document.getElementById('nav2');
+    nav2.addEventListener('click', function() {
+      if (!letters[1]) {
+        letters[1] = 'X';
+        cluesFound++;
+        showClue('Je vond letter #2: X (Fout navigatie label)');
+        checkAllClues();
+      } else {
+        showClue('Deze hint heb je al gevonden.');
+      }
+    });
+
+    // Puzzel #3: Een "fout" 404 melding oplossen
+    let badButton = document.getElementById('badButton');
+    badButton.addEventListener('click', function() {
+      alert("404 Fout! Pagina niet gevonden, probeer opnieuw.");
+      // Geef pas bij tweede klik de letter
+      if (!letters[2]) {
+        letters[2] = 'I';
+        cluesFound++;
+        showClue('Je hebt letter #3: I (Foutmelding)');
+        checkAllClues();
+      } else {
+        showClue('Deze hint heb je al gevonden.');
+      }
+    });
+
+    // Puzzel #4: De andere navigatie-items
+    // Bijv. "Pagina 3" voor letter #4
+    let nav3 = document.getElementById('nav3');
+    nav3.addEventListener('click', function() {
+      if (!letters[3]) {
+        letters[3] = 'T';
+        cluesFound++;
+        showClue('Je vond letter #4: T');
+        checkAllClues();
+      } else {
+        showClue('Deze hint heb je al gevonden.');
+      }
+    });
+
+    // Puzzel #5: De "Pagina 1" als extra clue
+    let nav1 = document.getElementById('nav1');
+    nav1.addEventListener('click', function() {
+      if (!letters[4]) {
+        letters[4] = 'A';
+        cluesFound++;
+        showClue('Je vond letter #5: A');
+        checkAllClues();
+      } else {
+        showClue('Deze hint heb je al gevonden.');
+      }
+    });
+
+    // Als gebruiker de code invoert
+    puzzleInput.addEventListener('keyup', function(e) {
+      if (e.key === 'Enter') {
+        let code = puzzleInput.value.trim().toUpperCase();
+        // De verwachte code wordt de concatenatie van alle letters, bijv. "UXITA"
+        let correctCode = letters.join('').toUpperCase();
+
+        if (code === correctCode) {
+          clearInterval(countdown);
+          timerElement.textContent = "Gefeliciteerd! Je hebt alle fouten gevonden en bent ontsnapt!";
+          puzzleInput.style.display = 'none';
+          showClue('Goed gedaan! De code was ' + correctCode);
+        } else {
+          showClue('Dat is niet de juiste code. Probeer opnieuw.');
+        }
+      }
+    });
+  </script>
+</body>
+</html>
